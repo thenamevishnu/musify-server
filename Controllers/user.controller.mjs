@@ -23,6 +23,7 @@ const signup = async (req, res) => {
         const response = await userCollection.create(body)
         response.password = null
         const token = jwt.createToken(response)
+        console.log(token, response);
         return res.status(201).send({
             message: "Account Created", token: token
         })
@@ -63,7 +64,26 @@ const login = async (req, res) => {
     }
 }
 
+const getSingers = async (req, res) => {
+    try {
+        const users = await userCollection.find({ account_type: "singer" })
+        if (!Array.isArray(users)) return res.status(400).send({
+            message: "Bad Request"
+        })
+        return res.status(200).send({
+            message: "success", 
+            singers: users
+        })
+    } catch (err) {
+        console.log(err.message)
+        return res.status(500).send({
+            message: "internal server error"
+        })
+    }
+}
+
 export default {
     signup,
-    login
+    login,
+    getSingers
 }

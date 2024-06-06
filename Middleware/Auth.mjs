@@ -11,7 +11,7 @@ export const Auth = async (req, res, next) => {
             message: "Bad Request"
         })
         const response = jwt.validateToken(parts[1])
-        if (response) next()
+        if (response) return next()
         return res.status(401).send({
             message: "Bad Request"
         })

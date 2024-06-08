@@ -25,7 +25,19 @@ const uploadTrack = async (req, res) => {
 
 const getTrending = async (req, res) => {
     try {
-        const tracks = await trackCollection.find({}).sort({ total_played: -1 }).limit(10)
+        const tracks = await trackCollection.aggregate([
+            {
+                $addFields: {
+                    playsCount: { $size: "$plays" }
+                }
+            },{
+                $sort: {
+                    playsCount: -1
+                }
+            }, {
+                $limit: 10
+            }
+        ])
         if (!Array.isArray(tracks)) return res.status(400).send({
             message: "Bad Request"
         })
@@ -44,7 +56,9 @@ const getTrending = async (req, res) => {
 const getRecommendations = async (req, res) => {
     try {
         const { tags } = req.query
-        const tracks = await trackCollection.find({ tags: { $in: tags } }).sort({ total_played: -1 }).limit(20)
+        const tagList = tags.split(",")
+        const regexArray = tagList.map(word => ({ tags: { $regex: `^${word}$`, $options: "i" } }))
+        const tracks = await trackCollection.find({ $or: regexArray}).limit(20)
         if (!Array.isArray(tracks)) return res.status(400).send({
             message: "Bad Request"
         })
@@ -62,9 +76,19 @@ const getRecommendations = async (req, res) => {
 
 const getTrack = async (req, res) => {
     try {
-        const { trackId } = req.params
+        const { trackId, user_id } = req.params
         const track = await trackCollection.findOne({ _id: trackId })
-        await trackCollection.updateOne({_id: trackId},{$inc: {total_played: 1}})
+        await trackCollection.updateOne({ _id: trackId }, { $addToSet: { plays: user_id } })
+        const previousTrack = await trackCollection.findOne({ _id: { $lt: trackId } }).sort({ _id: -1 })
+        const nextTrack = await trackCollection.findOne({ _id: { $gt: trackId } }).sort({ _id: 1 })
+        track._doc.previousTrack = previousTrack
+        if (!previousTrack) {
+            track._doc.previousTrack = await trackCollection.findOne({}).sort({_id: -1})
+        }
+        track._doc.nextTrack = nextTrack
+        if (!nextTrack) {
+            track._doc.nextTrack = await trackCollection.findOne({}).sort({_id: 1})
+        }
         if (!track) return res.status(400).send({
             message: "Bad Request"
         })

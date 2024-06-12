@@ -82,8 +82,71 @@ const getSingers = async (req, res) => {
     }
 }
 
+const updateProfile = async (req, res) => {
+    try {
+        const { user_id } = req.params
+        const body = req.body
+        const response = await userCollection.updateOne({ _id: user_id }, { $set: body })
+        if (response.matchedCount == 1 && response.modifiedCount == 1) {
+            return res.status(200).send({
+                message: "success"
+            })
+        }
+        return res.status(400).send({
+            message: "Bad Request"
+        })
+    } catch (err) {
+        console.log(err.message)
+        return res.status(500).send({
+            message: "internal server error"
+        })
+    }
+}
+
+const updatePassword = async (req, res) => {
+    try {
+        const { user_id } = req.params
+        const body = req.body
+        const user = await userCollection.findOne({ _id: user_id })
+        if (!user) {
+            return res.status(404).send({
+                message: "user does not exist"
+            })
+        }
+        const currentPasswordCheck = await bcrypt.validatePasswordHash(body.currentPassword, user.password)
+        if (!currentPasswordCheck) {
+            return res.status(400).send({
+                message: "Current password is incorrect"
+            })
+        }
+        const newPasswordCheck = await bcrypt.validatePasswordHash(body.newPassword, user.password)
+        if (newPasswordCheck) {
+            return res.status(400).send({
+                message: "New password same as current password"
+            })
+        }
+        const hash = await bcrypt.createPasswordHash(body.newPassword)
+        const response = await userCollection.updateOne({ _id: user_id }, { $set: { password: hash } })
+        if (response.modifiedCount == 1 && response.matchedCount == 1) {
+            return res.status(200).send({
+                message: "success"
+            })
+        }
+        return res.status(400).send({
+            message: "Bad Request"
+        })
+    } catch (err) {
+        console.log(err.message)
+        return res.status(500).send({
+            message: "internal server error"
+        })
+    }
+}
+
 export default {
     signup,
     login,
-    getSingers
+    getSingers,
+    updateProfile,
+    updatePassword
 }

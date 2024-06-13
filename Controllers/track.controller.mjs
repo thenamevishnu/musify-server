@@ -104,9 +104,29 @@ const getTrack = async (req, res) => {
     }
 }
 
+const getMyTracks = async (req, res) => {
+    try {
+        const { user_id } = req.params
+        const tracks = await trackCollection.find({ added: user_id })
+        if (!Array.isArray(tracks)) return res.status(400).send({
+            message: "Bad Request"
+        })
+        return res.status(200).send({
+            message: "success",
+            myTracks: tracks 
+        })
+    } catch (err) {
+        console.log(err.message)
+        return res.status(500).send({
+            message: "Internal server error"
+        })
+    }
+}
+
 export default {
     uploadTrack,
     getTrending,
     getRecommendations,
-    getTrack
+    getTrack,
+    getMyTracks
 }

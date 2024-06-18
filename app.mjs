@@ -7,6 +7,7 @@ import "./Utils/cron.mjs"
 import userRouter from "./Routes/user.route.mjs"
 import trackRouter from "./Routes/track.route.mjs"
 import statusRouter from "./Routes/status.route.mjs"
+import adminRouter from "./Routes/admin.route.mjs"
 
 import "./Config/db.mjs"
 
@@ -23,7 +24,8 @@ app.use(express.json())
 
 app.use("/api/v1/users", userRouter)
 app.use("/api/v1/tracks", trackRouter)
-app.use("/api/status", statusRouter)
+app.use("/api/v1/status", statusRouter)
+app.use("/api/v1/admins", adminRouter)
 
 app.listen(process.env.PORT || 8080, (err) => {
     if (err) process.exit(1)

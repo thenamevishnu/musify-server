@@ -21,7 +21,11 @@ const signup = async (req, res) => {
         })
         body.password = await bcrypt.createPasswordHash(body.password)
         const response = await userCollection.create(body)
+        if (!response._id) return res.status(400).send({
+            message: "Bad Request"
+        })
         response.password = null
+        response._doc.role = "user"
         const token = jwt.createToken(response)
         console.log(token, response);
         return res.status(201).send({
@@ -52,6 +56,8 @@ const login = async (req, res) => {
             message: "Invalid Login"
         })
         user.password = null
+        user._doc.role = "user"
+        console.log(user);
         const token = jwt.createToken(user)
         return res.status(200).send({
             message: "Loggin success", token: token

@@ -1,4 +1,5 @@
 import { trackCollection } from "../Models/tracks.model.mjs"
+import { deleteFromCloud } from "../Utils/cloudinary.mjs"
 
 const uploadTrack = async (req, res) => {
     try {
@@ -81,6 +82,7 @@ const getTrack = async (req, res) => {
         await trackCollection.updateOne({ _id: trackId }, { $addToSet: { plays: user_id } })
         const previousTrack = await trackCollection.findOne({ _id: { $lt: trackId } }).sort({ _id: -1 })
         const nextTrack = await trackCollection.findOne({ _id: { $gt: trackId } }).sort({ _id: 1 })
+        if(!track) return res.status(400).send({message: "Track not found"})
         track._doc.previousTrack = previousTrack
         if (!previousTrack) {
             track._doc.previousTrack = await trackCollection.findOne({}).sort({_id: -1})
@@ -123,10 +125,34 @@ const getMyTracks = async (req, res) => {
     }
 }
 
+const deleteTrack = async (req, res) => {
+    try {
+        const { user_id, track_id } = req.params
+        const getFile = await trackCollection.findOneAndDelete({ added: user_id, _id: track_id })
+        const isDeletedFromCloud = await deleteFromCloud(getFile.track)
+        if (!isDeletedFromCloud) {
+            return res.status(500).send({
+                deleted: false,
+                message: "Something error happend!"
+            })
+        }
+        return res.status(200).send({
+            deleted: true,
+            message: "success"
+        })
+    } catch (err) {
+        console.log(err.message)
+        return res.status(500).send({
+            message: "Internal server error"
+        })
+    }
+}
+
 export default {
     uploadTrack,
     getTrending,
     getRecommendations,
     getTrack,
-    getMyTracks
+    getMyTracks,
+    deleteTrack
 }

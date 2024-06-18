@@ -7,13 +7,26 @@ const createToken = (payload) => {
     return token
 }
 
-const validateToken = (resToken) => {
+const validateUserToken = (resToken) => {
     const now = Math.floor(new Date().getTime() / 1000)
     const token = jwt.verify(resToken, process.env.JWT_KEY)
+    if (token.sub?.role != "user") {
+        return false
+    }
+    return token.exp > now
+}
+
+const validateAdminToken = (resToken) => {
+    const now = Math.floor(new Date().getTime() / 1000)
+    const token = jwt.verify(resToken, process.env.JWT_KEY)
+    if (token.sub?.role != "admin") {
+        return false
+    }
     return token.exp > now
 }
 
 export default {
     createToken,
-    validateToken
+    validateUserToken,
+    validateAdminToken
 }

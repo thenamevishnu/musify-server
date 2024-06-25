@@ -28,6 +28,11 @@ const getTrending = async (req, res) => {
     try {
         const tracks = await trackCollection.aggregate([
             {
+                $match: {
+                    status: "live"
+                }
+            },
+            {
                 $addFields: {
                     playsCount: { $size: "$plays" }
                 }
@@ -59,7 +64,7 @@ const getRecommendations = async (req, res) => {
         const { tags } = req.query
         const tagList = tags.split(",")
         const regexArray = tagList.map(word => ({ tags: { $regex: `^${word}$`, $options: "i" } }))
-        const tracks = await trackCollection.find({ $or: regexArray}).limit(20)
+        const tracks = await trackCollection.find({ status: "live", $or: regexArray}).limit(20)
         if (!Array.isArray(tracks)) return res.status(400).send({
             message: "Bad Request"
         })
@@ -78,18 +83,18 @@ const getRecommendations = async (req, res) => {
 const getTrack = async (req, res) => {
     try {
         const { trackId, user_id } = req.params
-        const track = await trackCollection.findOne({ _id: trackId })
+        const track = await trackCollection.findOne({ _id: trackId, status: "live" })
         await trackCollection.updateOne({ _id: trackId }, { $addToSet: { plays: user_id } })
-        const previousTrack = await trackCollection.findOne({ _id: { $lt: trackId } }).sort({ _id: -1 })
-        const nextTrack = await trackCollection.findOne({ _id: { $gt: trackId } }).sort({ _id: 1 })
+        const previousTrack = await trackCollection.findOne({ _id: { $lt: trackId }, status: "live" }).sort({ _id: -1 })
+        const nextTrack = await trackCollection.findOne({ _id: { $gt: trackId }, status: "live" }).sort({ _id: 1 })
         if(!track) return res.status(400).send({message: "Track not found"})
         track._doc.previousTrack = previousTrack
         if (!previousTrack) {
-            track._doc.previousTrack = await trackCollection.findOne({}).sort({_id: -1})
+            track._doc.previousTrack = await trackCollection.findOne({status: "live"}).sort({_id: -1})
         }
         track._doc.nextTrack = nextTrack
         if (!nextTrack) {
-            track._doc.nextTrack = await trackCollection.findOne({}).sort({_id: 1})
+            track._doc.nextTrack = await trackCollection.findOne({status: "live"}).sort({_id: 1})
         }
         if (!track) return res.status(400).send({
             message: "Bad Request"

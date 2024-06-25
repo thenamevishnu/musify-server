@@ -59,6 +59,20 @@ const getStat = async (req, res) => {
                 _id: null,
                 tracks: {
                     $count: {}
+                },
+                approved: {
+                    $sum: {
+                        $cond: [{
+                            $eq: ["$status", "live"]
+                        }, 1, 0]
+                    }
+                },
+                pending: {
+                    $sum: {
+                        $cond: [{
+                            $eq: ["$status", "pending"]
+                        }, 1, 0]
+                    }
                 }
             }
         }])
@@ -166,11 +180,91 @@ const deleteTrack = async (req, res) => {
     }
 }
 
+const trackRequests = async (req, res) => {
+    try {
+        const tracks = await trackCollection.aggregate([{
+            $lookup: {
+                from: "users",
+                localField: "added",
+                foreignField: "_id",
+                as: "singer"
+            }
+        }])
+        if (Array.isArray(tracks)) {
+            return res.status(200).send({
+                message: "success",
+                tracks: tracks
+            })
+        }
+        return res.status(400).send({
+            message: "Bad Request"
+        })
+    } catch (err) {
+        console.log(err.message);
+        return res.status(500).message({
+            message: "Internal server error"
+        })
+    }
+}
+
+const trackApprove = async (req, res) => {
+    try {
+        const { track_id } = req.body
+        const response = await trackCollection.updateOne({ _id: track_id }, [{
+            $set: {
+                status: {
+                    $cond: {
+                        if: {
+                            $eq: ["$status", "pending"]
+                        },
+                        then: "live",
+                        else: "pending"
+            }
+                }
+            }
+        }])
+        if (response.matchedCount == 1 && response.modifiedCount == 1) {
+            return res.status(200).send({ message: "success", updated: true })
+        }
+        return res.status(400).send({message: "Bad Request"})
+    } catch (err) {
+        console.log(err.message);
+        return res.status(500).message({
+            message: "Internal server error"
+        })
+    }
+}
+
+const reports = async (req, res) => {
+    try {
+        const report = await trackCollection.aggregate([{
+            $lookup: {
+                from: "users",
+                localField: "added",
+                foreignField: "_id",
+                as: "singer"
+            }
+        }])
+        return res.status(200).send({
+            message: "success",
+            report: report
+        })
+    } catch (err) {
+        console.log(err.message);
+        return res.status(500).message({
+            message: "Internal server error"
+        })
+    }
+}
+
 export default {
     getStat,
     login,
     usersList,
     blockOrUnblock,
     tracksList,
-    deleteTrack
+    deleteTrack,
+    trackRequests,
+    trackApprove,
+    reports
 }

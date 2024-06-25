@@ -5,7 +5,6 @@ import jwt from "../Utils/jwt.mjs"
 const signup = async (req, res) => {
     try {
         const body = req.body
-        console.log(body);
         for (let key in body) {
             if (!body[key]) return res.status(400).send({
                 message: "Bad Request"
@@ -55,9 +54,13 @@ const login = async (req, res) => {
         if(!valid) return res.status(400).send({
             message: "Invalid Login"
         })
+        if (user.blocked) {
+            return res.status(400).send({
+                message: "You're blocked by admin"
+            })
+        }
         user.password = null
         user._doc.role = "user"
-        console.log(user);
         const token = jwt.createToken(user)
         return res.status(200).send({
             message: "Loggin success", token: token

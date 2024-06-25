@@ -7,7 +7,8 @@ const trackSchema = new Schema({
     thumb: { type: String, required: true },
     tags: { type: Array, default: [], required: true },
     added: { type: Types.ObjectId, required: true },
-    plays: [{ type: Types.ObjectId }]
+    plays: [{ type: Types.ObjectId }],
+    status: { type: String, default: "pending" }
 }, {
     timestamps: true
 })
